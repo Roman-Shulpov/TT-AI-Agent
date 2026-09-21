@@ -32,6 +32,13 @@ def classify(
             return "confirm", "Potential submission, deletion or other sensitive action"
         if action.name == "press_key" and args["key"] in {"Tab", "Escape", "ArrowDown", "ArrowUp"}:
             return "allow", "Non-submitting keyboard navigation"
+        if (
+            action.name == "press_key"
+            and args["key"] == "Enter"
+            and args.get("risk") == "reversible"
+            and element.role in {"textbox", "searchbox"}
+        ):
+            return "allow", "Enter in a text input for a reversible form edit"
         if element.role in {"checkbox", "radio"}:
             return "allow", "Toggle a form choice"
         if element.role == "link" and element.href and action.name == "click":

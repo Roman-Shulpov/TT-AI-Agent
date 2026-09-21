@@ -86,6 +86,16 @@ def test_safe_navigation_search_and_password_policy():
     )
 
 
+def test_enter_in_reversible_textbox_is_allowed_without_manual_confirmation():
+    press = action("press_key", element_id="s1-e1", key="Enter", risk="reversible")
+    assert classify(press, obs(role="textbox", name="What needs to be done?"))[0] == "allow"
+
+
+def test_enter_in_sensitive_textbox_still_requires_confirmation():
+    press = action("press_key", element_id="s1-e1", key="Enter", risk="sensitive")
+    assert classify(press, obs(role="textbox", name="Send message"))[0] == "confirm"
+
+
 def test_injection_remains_page_data():
     memory = ContextMemory("Find a book")
     page = obs()
