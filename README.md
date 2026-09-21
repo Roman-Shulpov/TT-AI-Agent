@@ -4,52 +4,80 @@ Python-агент принимает произвольную задачу и у
 выбирает один универсальный tool по текущей странице; Python проверяет аргументы и выполняет
 действие через Playwright. Заранее заданных сценариев по словам задачи нет.
 
-**Статус:** браузер, инструменты, цикл с тестовым провайдером и официальный SDK с HTTP mock
-проверяются автоматически. Реальный LLM-вызов и автономное выполнение на публичном сайте
-требуют API-ключа и пока не подтверждены. Точные результаты: [TEST_REPORT.md](TEST_REPORT.md).
+**Готовая демонстрация:** [видео, 2 минуты](demo/demo.mp4) · [результат и исходная запись](demo/README.md).
+Агент выполнил задачу в TodoMVC за 10 шагов без ручных кликов; состояние страницы проверено.
+
+Основной запуск — **Codex CLI через существующий вход ChatGPT**: отдельный API-ключ не нужен,
+используются доступ и лимиты вашего Codex. Также реализованы официальный **OpenAI SDK** и
+экспериментальный локальный **Ollama**. Результаты и границы проверок: [TEST_REPORT.md](TEST_REPORT.md).
+
+## Соответствие исходному заданию
+
+[ТЗ ментора](https://kolbasa.craft.me/ai_test_task): произвольная цель, видимый браузер,
+самостоятельный выбор действий, управление контекстом и дополнительный агентный паттерн.
+Здесь это универсальные tools, ограниченная память и Actor + финальный Verifier.
+Примеры почты, еды и вакансий изучены; их последовательности не зашиты в код.
+Для демонстрации используются публичные учебные интерфейсы без личных аккаунтов.
+
+Из двух предложенных облачных библиотек выбран официальный **OpenAI SDK**: Responses API,
+строгие схемы функций, асинхронные вызовы. У Anthropic также есть native tool use, но второй
+облачный SDK не добавлялся ради дублирования. Дополнительно реализован локальный Ollama,
+чтобы запуск и демонстрация не зависели от наличия платного ключа.
+
+AI-инструмент разработки — **Codex**. Упомянутый в ТЗ Claude Code + GLM — альтернативный
+инструмент разработки, а не обязательная часть агента. Его ключ не требуется этому проекту.
+Код, тесты и документация подготовлены с помощью AI; историю разработки не имитируем.
 
 ## Установка и запуск
 
-Python 3.11+. PowerShell из корня проекта:
+На исходном Windows-компьютере всё подготовлено: **двойной щелчок по `start.cmd`**.
+В открывшемся терминале введите задачу; рядом появится видимый Chromium.
+
+Для другого компьютера: Python 3.11+, Node.js и доступ к Codex. В корне проекта:
 
 ```powershell
+npm install -g @openai/codex
+codex login
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 .\.venv\Scripts\python.exe -m playwright install chromium
-Copy-Item .env.example .env
-```
-
-Откройте `.env` в редакторе и задайте `LLM_API_KEY`. Ключ не нужно вводить в команду терминала,
-отправлять кому-либо или коммитить. Уже созданная здесь `.venv` готова к работе.
-На Linux/macOS используйте `.venv/bin/python`; для системных библиотек Chromium может понадобиться
-`python -m playwright install --with-deps chromium`.
-
-```dotenv
-LLM_PROVIDER=openai
-LLM_MODEL=gpt-4.1-mini
-LLM_API_KEY=ваш_ключ_только_в_локальном_файле
-HEADLESS=false
-MAX_STEPS=30
-```
-
-```powershell
 .\.venv\Scripts\python.exe -m browser_agent
 ```
 
-Открывается Chromium, терминал спрашивает задачу. Видны шаг, домен, tool, target ID, результат,
-ошибки, число сжатых шагов, latency и tokens. Chain-of-thought не запрашивается.
-Браузер остаётся открытым до Enter. `/stop`, EOF или Ctrl+C останавливают работу.
-Статусы: `COMPLETED`, `NEEDS_INPUT`, `STOPPED`. Завершённая задача даёт exit code 0,
-остановка/необходимость ввода — 2, Ctrl+C — 130.
+Вход происходит штатно через Codex; проект не читает и не копирует файлы с авторизацией.
+Проверенная версия CLI — см. TEST_REPORT. На Linux/macOS используйте `.venv/bin/python`;
+для Chromium может понадобиться `python -m playwright install --with-deps chromium`.
 
-Без ключа можно проверить настоящий браузер:
+В терминале видны шаг, домен, tool, runtime ID и результат. Браузер остаётся открытым до Enter.
+`/stop`, EOF или Ctrl+C останавливают работу. Статусы: `COMPLETED`, `NEEDS_INPUT`, `STOPPED`.
+Успех — exit code 0, остановка — 2. Открытый профиль нельзя использовать двумя процессами.
 
-```powershell
-.\.venv\Scripts\python.exe -m browser_agent --check
+### Альтернативные модели
+
+Скопируйте `.env.example` в `.env`, измените провайдера и запускайте Python напрямую:
+`start.cmd` намеренно выбирает проверенный вариант Codex.
+
+```dotenv
+# Официальный OpenAI SDK, при наличии собственного API-доступа:
+LLM_PROVIDER=openai
+LLM_MODEL=gpt-4.1-mini
+LLM_API_KEY=ваш_ключ_только_локально
 ```
 
-CLI также поддерживает `--task`, `--start-url`, `--headless`, `--login`, `--dry-run`,
-`--close-on-finish`; полная справка: `python -m browser_agent --help`.
+```dotenv
+# Экспериментальный локальный вариант; отдельно установите Ollama и скачайте модель:
+LLM_PROVIDER=ollama
+LLM_MODEL=qwen2.5:7b
+```
+
+Для Ollama: `ollama pull qwen2.5:7b`; сервер — `http://127.0.0.1:11434`.
+Маленькие локальные модели ошибались и зацикливались в наших прогонах; для демонстрации
+использован Codex. Наличие локального backend не означает подтверждённое качество его модели.
+
+`python -m browser_agent --check` проверяет только запуск браузера и открывает пустую страницу.
+CLI также поддерживает `--task`, `--start-url`, `--record DIR`, `--headless`, `--login`,
+`--dry-run`, `--close-on-finish`. Справка: `python -m browser_agent --help`.
+Запись сохраняется в WebM при закрытии контекста; записывайте только демонстрационные данные.
 
 ## Demo
 
@@ -73,7 +101,7 @@ CLI также поддерживает `--task`, `--start-url`, `--headless`, `
 
 ## Features
 
-Observe/decide/act loop; strict native function calls; bounded context; Actor + final Verifier;
+Observe/decide/act loop; schema-validated actions; bounded context; Actor + final Verifier;
 runtime IDs; frames, открытый shadow DOM и новые вкладки; error recovery; loop detection;
 human confirmation; persistent session; operational logging; детерминированные тесты.
 
@@ -98,7 +126,8 @@ flowchart LR
 
 1. CLI загружает настройки и отдельный browser profile, получает произвольный goal.
 2. `observe()` снимает страницу; `ContextMemory.build()` собирает ограниченный JSON.
-3. `OpenAIProvider.decide()` получает один native function call через Responses API.
+3. Выбранный provider получает один Action: Codex structured JSON, OpenAI native tool call
+   или Ollama native tool call. Далее одна и та же строгая валидация и browser runtime.
 4. Имя и аргументы проверяются `TOOL_MODELS`/Pydantic; никакого `eval` и кода от модели.
 5. `ToolExecutor` применяет safety policy и при необходимости запрашивает одноразовое `YES`.
 6. Playwright выполняет действие. В память записывается результат, затем страница считывается заново.
@@ -223,15 +252,17 @@ localStorage persistent context. Не используйте один профи
 
 | Переменная | Default | Значение |
 |---|---|---|
-| `LLM_PROVIDER` | `openai` | Один реализованный provider path |
-| `LLM_MODEL` | `gpt-4.1-mini` | Модель с strict tools |
+| `LLM_PROVIDER` | `codex` | `codex`, `openai`, `ollama` |
+| `LLM_MODEL` | `gpt-5.5` | Модель выбранного провайдера |
 | `LLM_API_KEY` | пусто | Также принимается `OPENAI_API_KEY` из среды |
 | `LLM_BASE_URL` | SDK default | Endpoint должен поддерживать **Responses**, не только Chat Completions |
 | `HEADLESS` | `false` | Видимый Chromium |
 | `MAX_STEPS` | `30` | 1–200 итераций |
 | `ACTION_TIMEOUT_MS` | `8000` | Лимит действия |
 | `NAVIGATION_TIMEOUT_MS` | `20000` | Лимит перехода |
-| `LLM_TIMEOUT_SECONDS` | `45` | Лимит API-запроса до retry |
+| `LLM_TIMEOUT_SECONDS` | `180` | Лимит запроса до retry |
+| `OLLAMA_URL` | `http://127.0.0.1:11434` | Только локальный HTTP endpoint |
+| `OLLAMA_CONTEXT_TOKENS` | `16384` | Контекст локальной модели |
 | `PROFILE_DIR` | `.browser-profile` | Отдельная сохранённая сессия |
 | `MAX_TEXT_CHARS` | `9000` | Текст observation |
 | `MAX_ELEMENTS` | `70` | Количество элементов |
@@ -260,7 +291,8 @@ $env:RUN_LIVE_TESTS="1"
 Remove-Item Env:RUN_LIVE_TESTS
 ```
 
-Live test требует ключа и оплачиваемого доступа; он не заменяется mock автоматически.
+Live test требует входа в Codex, запущенного Ollama либо ключа OpenAI;
+он не заменяется mock автоматически.
 Для видимого тестового браузера: `$env:TEST_HEADFUL="1"`.
 Fixture-specific provider в `tests/test_agent.py` используется только тестом, не production CLI.
 Выдавать его за автономную LLM-демонстрацию нельзя.
@@ -275,9 +307,16 @@ MCP для одного процесса не нужен; [MCP_STUDY.md](MCP_STU
 сложные widgets, hover/drag/drop, uploads/downloads, вложенный scroll, очень большие формы,
 ошибки модели и потеря старых сведений. Универсальность primitives не гарантирует любой сайт.
 
-За следующую неделю: live eval с метриками успеха/стоимости, vision fallback, строгая policy
+За следующую неделю: расширенный live eval с метриками успеха/стоимости, vision fallback, строгая policy
 доменов/действий, улучшенный verifier, optional tracing с защитой персональных данных.
 Это планы, не реализованные возможности.
+
+Codex adapter запускает официальный CLI с `--output-schema`, `--ephemeral`, отдельной временной
+папкой, read-only sandbox и отключёнными shell/browser/apps/plugins/multi-agent инструментами.
+Он получает состояние через stdin, возвращает JSON; браузером управляет наш Playwright.
+Пользовательская конфигурация CLI не загружается, штатная авторизация сохраняется.
+Вызовы облачных провайдеров передают видимое содержимое страницы модели.
+[Официальный non-interactive CLI](https://developers.openai.com/codex/noninteractive).
 
 ## Защита проекта
 
