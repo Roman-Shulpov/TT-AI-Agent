@@ -11,6 +11,7 @@ build/
 dist/
 logs/
 artifacts/
+/private_notes/
 .browser-profile/
 storage_state*.json
 .coverage
