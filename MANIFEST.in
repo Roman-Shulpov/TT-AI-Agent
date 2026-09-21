@@ -1,0 +1,4 @@
+include *.md
+include .env.example
+include requirements.lock
+recursive-include tests *.py *.html
