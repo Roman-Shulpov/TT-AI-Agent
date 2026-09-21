@@ -41,6 +41,12 @@ class BrowserController:
                 headless=self.settings.headless,
                 viewport={"width": 1280, "height": 900},
                 accept_downloads=False,
+                record_video_dir=str(self.settings.record_video_dir)
+                if self.settings.record_video_dir
+                else None,
+                record_video_size={"width": 1280, "height": 900}
+                if self.settings.record_video_dir
+                else None,
             )
             self.context.set_default_timeout(self.settings.action_timeout_ms)
             self.context.set_default_navigation_timeout(self.settings.navigation_timeout_ms)

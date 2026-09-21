@@ -74,7 +74,9 @@ class Agent:
                     if check.complete:
                         logger.info("VERIFIER accepted completion")
                         return RunResult(
-                            status="completed", summary=action.arguments.summary, steps=step
+                            status="completed",
+                            summary=action.arguments.summary + "\n" + action.arguments.evidence,
+                            steps=step,
                         )
                     verification_failures += 1
                     memory.feedback = "Verifier rejected completion: " + check.feedback
@@ -122,7 +124,7 @@ class Agent:
             except InvalidDecision as exc:
                 errors += 1
                 memory.feedback = str(exc)
-                logger.warning("Invalid structured decision; re-observe and retry")
+                logger.warning("Invalid structured decision: %s; re-observe and retry", exc)
             except ProviderError as exc:
                 logger.error("Stopping after provider failure")
                 return RunResult(status="stopped", summary=str(exc), steps=step)

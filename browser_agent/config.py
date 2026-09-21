@@ -9,15 +9,18 @@ from pydantic import BaseModel, Field, SecretStr
 
 
 class Settings(BaseModel):
-    llm_provider: Literal["openai"] = "openai"
-    llm_model: str = "gpt-4.1-mini"
+    llm_provider: Literal["openai", "ollama", "codex"] = "codex"
+    llm_model: str = "gpt-5.5"
     llm_api_key: SecretStr = SecretStr("")
     llm_base_url: str | None = None
     headless: bool = False
     max_steps: int = Field(default=30, ge=1, le=200)
     action_timeout_ms: int = Field(default=8000, ge=100, le=60000)
     navigation_timeout_ms: int = Field(default=20000, ge=100, le=90000)
-    llm_timeout_seconds: float = Field(default=45, ge=1, le=180)
+    llm_timeout_seconds: float = Field(default=180, ge=1, le=600)
+    ollama_url: str = "http://127.0.0.1:11434"
+    ollama_context_tokens: int = Field(default=16384, ge=4096, le=32768)
+    record_video_dir: Path | None = None
     profile_dir: Path = Path(".browser-profile")
     max_text_chars: int = Field(default=9000, ge=500, le=20000)
     max_elements: int = Field(default=70, ge=5, le=120)

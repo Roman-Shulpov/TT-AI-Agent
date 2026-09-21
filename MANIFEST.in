@@ -1,4 +1,6 @@
 include *.md
 include .env.example
 include requirements.lock
+include start.cmd start.ps1
+recursive-include scripts *.py
 recursive-include tests *.py *.html

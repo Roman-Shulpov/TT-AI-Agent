@@ -51,14 +51,15 @@ class ContextMemory:
         page = observation.model_dump()
         page["url"] = page["url"][:2048]
         data = {
-            "user_goal": self.goal,
-            "user_answers": list(self.answers),
             "step": step,
-            "progress": {"compacted_steps": self.compacted, "feedback": self.feedback[:1500]},
             "older_action_receipts": list(self.summary),
             "recent_actions": list(self.recent),
             "untrusted_saved_page_quotes": list(self.facts),
             "untrusted_browser_observation": page,
+            # Keep authoritative instructions after the potentially long page data.
+            "progress": {"compacted_steps": self.compacted, "feedback": self.feedback[:1500]},
+            "user_answers": list(self.answers),
+            "user_goal": self.goal,
         }
         encoded = json.dumps(data, ensure_ascii=False)
         # Characters are deterministic; actual token usage comes from the provider.

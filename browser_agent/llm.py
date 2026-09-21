@@ -1,4 +1,4 @@
-"""One provider path: official asynchronous SDK and Responses native function calling."""
+"""Official OpenAI SDK / Responses native tools and shared provider interface."""
 
 import asyncio
 import logging
@@ -42,6 +42,8 @@ class DecisionProvider(Protocol):
     async def decide(self, context: str) -> Action: ...
 
     async def verify(self, context: str, proposal: str) -> Verification: ...
+
+    async def close(self) -> None: ...
 
 
 def function_schema(name: str, model: type[StrictModel], description: str) -> dict:

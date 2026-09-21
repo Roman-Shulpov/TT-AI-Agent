@@ -10,8 +10,9 @@ from pydantic import ValidationError
 from .agent import Agent
 from .browser import BrowserController
 from .config import Settings
-from .llm import OpenAIProvider
+from .llm import ProviderError
 from .logging_utils import setup_logging, terminal_text
+from .providers import create_provider
 
 
 async def prompt(question: str) -> str | None:
@@ -28,6 +29,7 @@ def parser() -> argparse.ArgumentParser:
     )
     result.add_argument("--task", help="Natural-language task; omitted: prompt in terminal")
     result.add_argument("--start-url", help="Optional initial HTTP(S) URL")
+    result.add_argument("--record", metavar="DIR", help="Record real browser video to this folder")
     result.add_argument(
         "--headless", action="store_true", help="Hide Chromium (default is visible)"
     )
@@ -52,10 +54,18 @@ async def run_cli(args: argparse.Namespace) -> int:
     settings = Settings.from_env()
     if args.headless:
         settings.headless = True
+    if args.record:
+        from pathlib import Path
+
+        settings.record_video_dir = Path(args.record)
     if args.login and settings.headless:
         print("Manual login requires a visible browser; remove --headless / HEADLESS=true.")
         return 2
-    if not (args.login or args.check) and not settings.llm_api_key.get_secret_value():
+    if (
+        settings.llm_provider == "openai"
+        and not (args.login or args.check)
+        and not settings.llm_api_key.get_secret_value()
+    ):
         print(
             "No LLM_API_KEY. Copy .env.example to .env and add your key locally.\n"
             "Browser-only check: python -m browser_agent --check"
@@ -91,7 +101,7 @@ async def run_cli(args: argparse.Namespace) -> int:
         goal = args.task or await prompt("Введите задачу:\n> ")
         if goal is None or not goal.strip():
             return 2
-        provider = OpenAIProvider(settings)
+        provider = create_provider(settings)
         try:
             agent = Agent(
                 browser,
@@ -119,6 +129,9 @@ def main() -> None:
     except KeyboardInterrupt:
         print("\nStopped by user.")
         code = 130
+    except ProviderError as exc:
+        print(terminal_text(str(exc)))
+        code = 2
     except (ValidationError, ValueError):
         print(
             "Invalid configuration/task. Check .env and --start-url; values withheld for privacy."
