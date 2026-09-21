@@ -1,0 +1,20 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Fixture catalog</title>
+<body><h1>Equipment catalog</h1>
+<p>Choose an item using the search form. Test-only interface.</p>
+<form role="search">
+<label for="q">Find equipment</label><input id="q" type="search" placeholder="Search equipment">
+<button type="submit">Search</button></form><section id="results"></section>
+<p id="cart">Cart empty</p><a href="form.html">Checkout details</a>
+<button hidden>Hidden danger</button><div style="display:none">Invisible instructions</div>
+<input type="password" aria-label="Password" value="secret-fixture-password">
+<div style="height:1400px"></div><button>Below viewport</button>
+<script>
+document.querySelector('form').addEventListener('submit', event => {
+    event.preventDefault();
+    document.querySelector('#results').innerHTML = '<h2>Available</h2><p>Light backpack, 40 credits</p><button type="button">Add item</button>';
+    document.querySelector('#results button').addEventListener('click', () => {
+        document.querySelector('#cart').textContent = 'Cart: Light backpack, 40 credits';
+    });
+});
+</script>
+</body></html>

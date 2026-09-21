@@ -1,0 +1,14 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Fixture form</title><body>
+<h1>Delivery draft</h1>
+<form onsubmit="event.preventDefault(); document.querySelector('#status').textContent='Submitted'">
+<label>Name <input name="name"></label>
+<label>Delivery <select><option value="standard">Standard</option><option value="pickup">Pick up</option></select></label>
+<label><input type="checkbox">Gift wrap</label>
+<label>Notes <textarea></textarea></label>
+<button type="submit">Send application</button><p id="status">Not submitted</p>
+</form><a href="catalog.html" target="_blank">Open catalog in new tab</a>
+<iframe title="Help" src="frame.html"></iframe>
+<div id="shadow"></div>
+<div>Custom choice<input aria-label="Styled checkbox" type="checkbox" style="opacity:0;width:30px;height:30px"></div>
+<script>document.querySelector('#shadow').attachShadow({mode:'open'}).innerHTML='<button>Shadow control</button>';</script>
+</body></html>

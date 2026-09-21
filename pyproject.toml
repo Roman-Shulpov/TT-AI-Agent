@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autonomous-browser-agent"
+version = "0.1.0"
+description = "A transparent DOM-first browser agent with validated tools and final verification"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["openai>=2.0,<3", "playwright>=1.51,<2", "pydantic>=2.10,<3", "python-dotenv>=1.0,<2", "httpx>=0.28,<1"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "pytest-asyncio>=1,<2", "ruff>=0.11,<1", "httpx>=0.28,<1", "build>=1,<2"]
+
+[project.scripts]
+browser-agent = "browser_agent.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["browser_agent*"]
+
+[tool.setuptools.package-data]
+browser_agent = ["*.js"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = ["browser: starts real Chromium", "public: needs public internet", "live: requires a real local or cloud model"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
