@@ -8,9 +8,12 @@ from .models import Action, Observation
 
 SENSITIVE = re.compile(
     r"pay|purchase|place.?order|confirm.?order|send|submit|delete|remove|erase|unsubscribe|"
-    r"transfer|publish|оплат|купить|подтверд|отправ|удал|перевести|опубликов",
+    r"transfer|publish|checkout|оплат|купить|подтверд|отправ|удал|перевести|"
+    r"опубликов|оформить.?заказ|заказать",
     re.I,
 )
+
+DISMISS = re.compile(r"^(close|закрыть|×|x)$", re.I)
 
 
 def classify(
@@ -28,6 +31,8 @@ def classify(
         return "allow", "HTTP(S) navigation"
     if action.name in {"click", "press_key", "select_option"}:
         label = f"{element.name} {element.text} {element.href}"
+        if action.name == "click" and DISMISS.fullmatch(element.name.strip()):
+            return "allow", "Dismiss dialog or modal"
         if args.get("risk") in {"sensitive", "unknown"} or SENSITIVE.search(label):
             return "confirm", "Potential submission, deletion or other sensitive action"
         if action.name == "press_key" and args["key"] in {"Tab", "Escape", "ArrowDown", "ArrowUp"}:

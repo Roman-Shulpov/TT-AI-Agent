@@ -15,6 +15,12 @@ from .logging_utils import setup_logging, terminal_text
 from .providers import create_provider
 
 
+def configure_output_encoding() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 async def prompt(question: str) -> str | None:
     try:
         answer = await asyncio.to_thread(input, terminal_text(question))
@@ -51,6 +57,7 @@ def parser() -> argparse.ArgumentParser:
 
 
 async def run_cli(args: argparse.Namespace) -> int:
+    configure_output_encoding()
     settings = Settings.from_env()
     if args.headless:
         settings.headless = True

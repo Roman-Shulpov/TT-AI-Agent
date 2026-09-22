@@ -138,3 +138,15 @@ async def test_explicit_confirmation_executes_once(browser, fixture_server):
     send = action("click", element_id=find(observation, "Send application"), risk="sensitive")
     assert (await executor.execute(send, observation)).ok
     assert "Submitted" in (await browser.observe()).text
+
+
+async def test_confirmation_accepts_lowercase_yes(browser, fixture_server):
+    observation = await open_fixture(browser, fixture_server, "form.html")
+
+    async def approve(_):
+        return "yes"
+
+    executor = ToolExecutor(browser, approve)
+    send = action("click", element_id=find(observation, "Send application"), risk="sensitive")
+    assert (await executor.execute(send, observation)).ok
+    assert "Submitted" in (await browser.observe()).text

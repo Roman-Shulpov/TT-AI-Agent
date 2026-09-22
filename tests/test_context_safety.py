@@ -63,7 +63,12 @@ def test_changed_state_does_not_trigger_repeated_action_loop():
 
 @pytest.mark.parametrize(
     "name,expected",
-    [("Pay now", "confirm"), ("Удалить", "confirm"), ("Unfamiliar control", "confirm")],
+    [
+        ("Pay now", "confirm"),
+        ("Оформить заказ", "confirm"),
+        ("Удалить", "confirm"),
+        ("Unfamiliar control", "confirm"),
+    ],
 )
 def test_conservative_confirmation(name, expected):
     assert (
@@ -94,6 +99,11 @@ def test_enter_in_reversible_textbox_is_allowed_without_manual_confirmation():
 def test_enter_in_sensitive_textbox_still_requires_confirmation():
     press = action("press_key", element_id="s1-e1", key="Enter", risk="sensitive")
     assert classify(press, obs(role="textbox", name="Send message"))[0] == "confirm"
+
+
+def test_close_button_is_allowed_as_dismissal():
+    click = action("click", element_id="s1-e1", risk="unknown")
+    assert classify(click, obs(name="Закрыть"))[0] == "allow"
 
 
 def test_injection_remains_page_data():

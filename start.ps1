@@ -10,8 +10,16 @@ try {
     }
     $env:LLM_PROVIDER = 'codex'
     $env:LLM_MODEL = 'gpt-5.5'
+    $env:SAFETY_MODE = 'balanced'
+    if (-not $env:PROFILE_DIR) {
+        $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+        $env:PROFILE_DIR = Join-Path $PSScriptRoot "artifacts\start-profile-$stamp"
+    }
     Write-Host 'Browser AI agent. Uses your Codex login and usage limits. No separate API key.'
     Write-Host 'Enter your task below. /stop or Ctrl+C stops the agent.'
+    Write-Host 'Video prompts: VIDEO_PROMPTS.md'
+    Write-Host 'Safety: balanced for demo; checkout/payment still asks confirmation.'
+    Write-Host "Browser profile: $env:PROFILE_DIR"
     & $python -m browser_agent
 } catch {
     Write-Host $_.Exception.Message -ForegroundColor Red

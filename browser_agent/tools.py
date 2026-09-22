@@ -57,7 +57,7 @@ class ToolExecutor:
                     return ToolResult(
                         ok=False, message="User input unavailable", error="NeedsInput"
                     )
-                if reply.strip() != "YES":
+                if reply.strip().upper() != "YES":
                     return ToolResult(
                         ok=False, message="User denied action; do not repeat it", error="UserDenied"
                     )

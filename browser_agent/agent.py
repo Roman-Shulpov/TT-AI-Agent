@@ -113,11 +113,12 @@ class Agent:
                         )
                 memory.record(action, result, observation)
                 memory.feedback = "" if result.ok else result.message
-                errors = 0 if result.ok else errors + 1
+                retryable_fact = action.name == "record_fact" and not result.ok
+                errors = 0 if result.ok or retryable_fact else errors + 1
                 logger.log(
-                    logging.INFO if result.ok else logging.WARNING,
+                    logging.INFO if result.ok or retryable_fact else logging.WARNING,
                     "RESULT %s error=%s elapsed=%.2fs",
-                    "ok" if result.ok else "failed",
+                    "ok" if result.ok else "retry" if retryable_fact else "failed",
                     result.error or "-",
                     time.monotonic() - started,
                 )
