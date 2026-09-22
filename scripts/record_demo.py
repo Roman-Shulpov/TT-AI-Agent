@@ -13,17 +13,22 @@ from pathlib import Path
 
 from browser_agent.agent import Agent
 from browser_agent.browser import BrowserController
+from browser_agent.cli import configure_output_encoding
 from browser_agent.config import Settings
 from browser_agent.logging_utils import setup_logging
 from browser_agent.providers import create_provider
 
 
 class RecordedProvider:
-    def __init__(self, delegate):
+    def __init__(self, delegate, output):
         self.delegate = delegate
+        self.output = output
         self.decisions = []
 
     async def decide(self, context):
+        await asyncio.to_thread(
+            (self.output / "latest-state.json").write_text, context, encoding="utf-8"
+        )
         action = await self.delegate.decide(context)
         self.decisions.append({"name": action.name, "arguments": action.arguments.model_dump()})
         return action
@@ -36,6 +41,7 @@ class RecordedProvider:
 
 
 async def run(args):
+    configure_output_encoding()
     output = Path(args.output)
     await asyncio.to_thread(output.mkdir, parents=True, exist_ok=False)
     settings = Settings.from_env()
@@ -43,8 +49,9 @@ async def run(args):
     settings.profile_dir = output / "profile"
     settings.record_video_dir = output / "video"
     settings.safety_mode = "balanced"
+    settings.autonomous = True
     setup_logging(settings.llm_api_key.get_secret_value())
-    provider = RecordedProvider(create_provider(settings))
+    provider = RecordedProvider(create_provider(settings), output)
 
     async def no_input(question):
         print("INPUT REQUESTED:", question, flush=True)
@@ -53,7 +60,14 @@ async def run(args):
     started = time.monotonic()
     try:
         async with BrowserController(settings) as browser:
-            agent = Agent(browser, provider, no_input, settings.max_steps, safety_mode="balanced")
+            agent = Agent(
+                browser,
+                provider,
+                no_input,
+                settings.max_steps,
+                safety_mode="balanced",
+                autonomous=True,
+            )
             result = await agent.run(args.task)
             observation = await browser.observe()
             await browser.current_page().screenshot(path=str(output / "final.png"))

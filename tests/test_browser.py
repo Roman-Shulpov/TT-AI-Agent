@@ -150,3 +150,46 @@ async def test_confirmation_accepts_lowercase_yes(browser, fixture_server):
     send = action("click", element_id=find(observation, "Send application"), risk="sensitive")
     assert (await executor.execute(send, observation)).ok
     assert "Submitted" in (await browser.observe()).text
+
+
+async def test_autonomous_search_works_but_application_is_blocked(browser, fixture_server):
+    async def forbidden_input(_):
+        pytest.fail("Autonomous executor must never request input")
+
+    executor = ToolExecutor(browser, forbidden_input, mode="balanced", autonomous=True)
+    observation = await open_fixture(browser, fixture_server)
+    search = action("click", element_id=find(observation, "Search"), risk="read_only")
+    assert (await executor.execute(search, observation)).ok
+
+    observation = await open_fixture(browser, fixture_server, "form.html")
+    send = action("click", element_id=find(observation, "Send application"), risk="sensitive")
+    assert (await executor.execute(send, observation)).error == "PolicyBlocked"
+    assert "Not submitted" in await browser.current_page().inner_text("body")
+
+
+async def test_styled_radio_uses_associated_label(browser):
+    await browser.current_page().set_content("""
+        <label style="display:block;position:relative;width:300px;height:40px">
+          <input type="radio" name="city" style="position:absolute;inset:0;opacity:0">
+          <span style="position:absolute;inset:0;background:white">Novosibirsk</span>
+        </label>
+    """)
+    observation = await browser.observe()
+    radio = next(e for e in observation.elements if e.role == "radio")
+    result = await browser.execute(action("click", element_id=radio.id, risk="reversible"))
+    assert result.ok
+    assert next(e for e in (await browser.observe()).elements if e.role == "radio").checked
+
+
+async def test_overlay_hides_background_controls_and_scrolls_inside(browser):
+    await browser.current_page().set_content("""
+        <button style="position:fixed;left:40%;top:40%">Background</button>
+        <div style="position:fixed;inset:0;background:white;overflow:auto">
+          <button>Dialog action</button><div style="height:1800px">Dialog content</div>
+          <button>Bottom action</button>
+        </div>
+    """)
+    observation = await browser.observe()
+    assert "Background" not in [e.name for e in observation.elements]
+    assert (await browser.execute(action("scroll", direction="down", amount=1500))).ok
+    assert "Bottom action" in [e.name for e in (await browser.observe()).elements]

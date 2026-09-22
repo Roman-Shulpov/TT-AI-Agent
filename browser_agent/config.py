@@ -26,6 +26,7 @@ class Settings(BaseModel):
     max_elements: int = Field(default=70, ge=5, le=120)
     recent_history: int = Field(default=6, ge=2, le=12)
     safety_mode: Literal["conservative", "balanced"] = "conservative"
+    autonomous: bool = False
 
     @classmethod
     def from_env(cls) -> "Settings":

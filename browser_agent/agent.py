@@ -26,20 +26,23 @@ class Agent:
         recent_history: int = 6,
         safety_mode: str = "conservative",
         dry_run: bool = False,
+        autonomous: bool = False,
     ):
         self.browser = browser
         self.provider = provider
         self.ask = ask
         self.max_steps = max_steps
         self.recent_history = recent_history
-        self.executor = ToolExecutor(browser, ask, safety_mode, dry_run)
+        self.autonomous = autonomous
+        self.executor = ToolExecutor(browser, ask, safety_mode, dry_run, autonomous)
         self.memory: ContextMemory | None = None
 
     async def run(self, goal: str) -> RunResult:
-        memory = self.memory = ContextMemory(goal, self.recent_history)
+        memory = self.memory = ContextMemory(goal, self.recent_history, self.autonomous)
         detector = LoopDetector()
         errors = 0
         verification_failures = 0
+        input_requests = 0
         for step in range(1, self.max_steps + 1):
             started = time.monotonic()
             try:
@@ -83,10 +86,30 @@ class Agent:
                     logger.warning("VERIFIER rejected completion; actor will replan")
                     if verification_failures >= 3:
                         return RunResult(
-                            status="stopped", summary="Completion could not be verified", steps=step
+                            status="stopped",
+                            summary="Completion could not be verified: " + check.feedback,
+                            steps=step,
                         )
                     continue
                 if action.name == "ask_user":
+                    if self.autonomous:
+                        input_requests += 1
+                        if input_requests >= 2:
+                            return RunResult(
+                                status="stopped",
+                                summary="Автономное выполнение остановлено: "
+                                + action.arguments.question,
+                                steps=step,
+                            )
+                        memory.feedback = (
+                            "No interactive input is available. Choose unspecified preferences "
+                            "yourself within the user's constraints. Try another public page or "
+                            "read-only path. Never invent evidence or change required criteria. "
+                            "If blocked by login/CAPTCHA, ask_user once more to report the blocker "
+                            "and end the run without prompting."
+                        )
+                        logger.info("AUTONOMOUS replanning without user input")
+                        continue
                     answer = await self.ask(action.arguments.question + "\n> ")
                     if answer is None:
                         return RunResult(

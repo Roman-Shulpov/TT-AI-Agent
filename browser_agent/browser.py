@@ -92,6 +92,20 @@ class BrowserController:
         except PlaywrightTimeout:
             # A partially loaded page can still provide useful evidence.
             pass
+        await page.evaluate("""() => new Promise(resolve => {
+            let quiet;
+            const done = () => {
+                clearTimeout(quiet); clearTimeout(limit); observer.disconnect(); resolve();
+            };
+            const observer = new MutationObserver(() => {
+                clearTimeout(quiet);
+                quiet = setTimeout(done, 350);
+            });
+            const limit = setTimeout(done, 2000);
+            observer.observe(document.documentElement,
+                {subtree:true, childList:true, attributes:true});
+            quiet = setTimeout(done, 350);
+        })""")
         tabs = {key: p.url[:1000] for key, p in list(self.pages.items())[-10:] if not p.is_closed()}
         self.last_observation = await self.extractor.extract(page, tabs)
         self.observation_page = page
@@ -123,14 +137,41 @@ class BrowserController:
                 case "navigate":
                     await page.goto(args["url"], wait_until="domcontentloaded")
                 case "click":
-                    await target.click()
+                    label = None
+                    if await target.evaluate(
+                        "el => el.matches('input[type=checkbox],input[type=radio]')"
+                    ):
+                        label_handle = await target.evaluate_handle("el => el.labels?.[0] || null")
+                        label = label_handle.as_element()
+                        try:
+                            if label and await label.is_visible() and await target.is_enabled():
+                                await label.click()
+                            else:
+                                await target.click()
+                        finally:
+                            await label_handle.dispose()
+                    else:
+                        await target.click()
                 case "type_text":
                     await target.fill(args["text"])
                 case "select_option":
                     await target.select_option(value=args["value"])
                 case "scroll":
                     dy = args["amount"] * (1 if args["direction"] == "down" else -1)
-                    await page.evaluate("dy => window.scrollBy(0,dy)", dy)
+                    await page.evaluate(
+                        """dy => {
+                        const center = document.elementFromPoint(innerWidth/2, innerHeight/2);
+                        for (let el = center; el && el !== document.body; el = el.parentElement) {
+                            if (/auto|scroll/.test(getComputedStyle(el).overflowY) &&
+                                el.scrollHeight > el.clientHeight + 1) {
+                                el.scrollBy(0, dy);
+                                return;
+                            }
+                        }
+                        window.scrollBy(0,dy);
+                    }""",
+                        dy,
+                    )
                 case "go_back":
                     await page.go_back(wait_until="domcontentloaded")
                 case "wait":

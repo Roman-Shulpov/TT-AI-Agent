@@ -19,11 +19,13 @@ class ToolExecutor:
         ask: Ask,
         mode: str = "conservative",
         dry_run: bool = False,
+        autonomous: bool = False,
     ):
         self.browser = browser
         self.ask = ask
         self.mode = mode
         self.dry_run = dry_run
+        self.autonomous = autonomous
 
     async def _stamp(self, action: Action) -> str:
         page = self.browser.current_page()
@@ -50,6 +52,13 @@ class ToolExecutor:
                 ok=False, message="Dry run: action proposed but not executed", error="DryRun"
             )
         if decision == "confirm":
+            if self.autonomous:
+                return ToolResult(
+                    ok=False,
+                    message="Autonomous mode cannot approve this action. Use a read-only "
+                    "alternative; do not purchase, apply, send, or request confirmation. " + reason,
+                    error="PolicyBlocked",
+                )
             try:
                 stamp = await self._stamp(action)
                 reply = await self.ask(confirmation_text(action, observation, reason))

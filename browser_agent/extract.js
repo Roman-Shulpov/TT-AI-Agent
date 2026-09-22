@@ -12,6 +12,18 @@
             r.top < innerHeight && r.left < innerWidth;
     };
     const clean = (s, n=160) => String(s || '').replace(/\s+/g, ' ').trim().slice(0,n);
+    const reachable = el => {
+        const r = el.getBoundingClientRect();
+        const left = Math.max(0, r.left), right = Math.min(innerWidth, r.right);
+        const top = Math.max(0, r.top), bottom = Math.min(innerHeight, r.bottom);
+        const root = el.getRootNode();
+        return [0.5, 0.2, 0.8].some(f => {
+            const x = left + (right-left)*f, y = top + (bottom-top)*0.5;
+            const hit = root.elementFromPoint?.(x,y) || document.elementFromPoint(x,y);
+            return hit === el || el.contains(hit) ||
+                (el.labels && Array.from(el.labels).some(label => label === hit || label.contains(hit)));
+        });
+    };
     const secret = el => el.type === 'password' ||
         /password|one-time-code|cc-number|cc-csc/.test(el.autocomplete || '');
     const name = el => {
@@ -43,7 +55,7 @@
                 if (t) { lines.push(t); length += t.length + 1; }
             }
             if (n.nodeType !== Node.ELEMENT_NODE) continue;
-            if (n.matches(selector) && visible(n)) {
+            if (n.matches(selector) && visible(n) && reachable(n)) {
                 if (nodes.length >= maxElements) { truncated = true; continue; }
                 nodes.push(n);
                 meta.push({tag:n.tagName.toLowerCase(), role:clean(role(n)), name:name(n),

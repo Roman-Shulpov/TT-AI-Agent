@@ -129,3 +129,40 @@ async def test_dry_run_stops_before_navigation(browser):
     result = await Agent(browser, provider, approve, dry_run=True).run("Open example.org")
     assert result.status == "stopped"
     assert browser.current_page().url == "about:blank"
+
+
+@pytest.mark.browser
+async def test_autonomous_mode_replans_without_calling_input(browser):
+    class Provider(SingleProvider):
+        async def decide(self, context):
+            data = json.loads(context)
+            assert data["autonomous"] is True
+            if data["step"] == 1:
+                return action("ask_user", question="Which city?")
+            assert "Choose unspecified preferences" in data["progress"]["feedback"]
+            return action("wait", milliseconds=100)
+
+    async def forbidden_input(_):
+        pytest.fail("Autonomous run must not read stdin")
+
+    result = await Agent(
+        browser, Provider(None), forbidden_input, max_steps=2, autonomous=True
+    ).run("Choose any city")
+    assert result.status == "stopped"
+    assert result.steps == 2
+
+
+@pytest.mark.browser
+async def test_autonomous_blocker_stops_without_claiming_completion(browser):
+    async def forbidden_input(_):
+        pytest.fail("Autonomous run must not read stdin")
+
+    result = await Agent(
+        browser,
+        SingleProvider(action("ask_user", question="CAPTCHA blocks the page")),
+        forbidden_input,
+        autonomous=True,
+    ).run("Find a vacancy")
+    assert result.status == "stopped"
+    assert result.steps == 2
+    assert "CAPTCHA" in result.summary

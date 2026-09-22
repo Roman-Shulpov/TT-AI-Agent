@@ -7,10 +7,11 @@ from .models import Action, Observation, ToolResult
 
 
 class ContextMemory:
-    def __init__(self, goal: str, recent_limit: int = 6):
+    def __init__(self, goal: str, recent_limit: int = 6, autonomous: bool = False):
         if not goal.strip() or len(goal) > 6000:
             raise ValueError("Goal must contain 1–6000 characters")
         self.goal = goal
+        self.autonomous = autonomous
         self.recent_limit = recent_limit
         self.recent: deque[dict] = deque()
         self.summary: deque[str] = deque(maxlen=12)
@@ -60,6 +61,7 @@ class ContextMemory:
             "progress": {"compacted_steps": self.compacted, "feedback": self.feedback[:1500]},
             "user_answers": list(self.answers),
             "user_goal": self.goal,
+            "autonomous": self.autonomous,
         }
         encoded = json.dumps(data, ensure_ascii=False)
         # Characters are deterministic; actual token usage comes from the provider.

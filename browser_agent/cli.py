@@ -34,6 +34,9 @@ def parser() -> argparse.ArgumentParser:
         description="Autonomous browser agent: enter any natural-language goal"
     )
     result.add_argument("--task", help="Natural-language task; omitted: prompt in terminal")
+    result.add_argument(
+        "--autonomous", action="store_true", help="Choose defaults; never wait for mid-task input"
+    )
     result.add_argument("--start-url", help="Optional initial HTTP(S) URL")
     result.add_argument("--record", metavar="DIR", help="Record real browser video to this folder")
     result.add_argument(
@@ -59,6 +62,9 @@ def parser() -> argparse.ArgumentParser:
 async def run_cli(args: argparse.Namespace) -> int:
     configure_output_encoding()
     settings = Settings.from_env()
+    if args.autonomous:
+        settings.autonomous = True
+        settings.safety_mode = "balanced"
     if args.headless:
         settings.headless = True
     if args.record:
@@ -81,7 +87,8 @@ async def run_cli(args: argparse.Namespace) -> int:
     run_id = setup_logging(settings.llm_api_key.get_secret_value())
     print(
         f"Browser Agent | Model: {settings.llm_model} | Max steps: {settings.max_steps}\n"
-        f"Safety: {settings.safety_mode} | Run: {run_id} | /stop or Ctrl+C to stop"
+        f"Safety: {settings.safety_mode} | Autonomous: {settings.autonomous} | "
+        f"Run: {run_id} | /stop or Ctrl+C to stop"
     )
     async with BrowserController(settings) as browser:
         if args.start_url:
@@ -118,6 +125,7 @@ async def run_cli(args: argparse.Namespace) -> int:
                 settings.recent_history,
                 settings.safety_mode,
                 args.dry_run,
+                autonomous=settings.autonomous,
             )
             result = await agent.run(goal)
             print(
